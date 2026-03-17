@@ -123,10 +123,28 @@ class Tetris():
             # Controls
             self.stdscr.addstr(offset_y + 4, info_x, "Controls:")
             self.stdscr.addstr(offset_y + 5, info_x, "  Left/Right  Move")
-            self.stdscr.addstr(offset_y + 6, info_x, "  Down        Soft drop")
-            self.stdscr.addstr(offset_y + 7, info_x, "  q           Quit")
+            self.stdscr.addstr(offset_y + 6, info_x, "  Up          Rotate")
+            self.stdscr.addstr(offset_y + 7, info_x, "  Down        Soft drop")
+            self.stdscr.addstr(offset_y + 8, info_x, "  q           Quit")
 
             self.stdscr.refresh()
+
+    def rotate(self):
+        """Try to rotate the piece. If the rotated position collides, don't rotate."""
+        # Cycle to the next rotation state (wraps around with %)
+        new_rotation = (self.current_rotation + 1) % len(PIECES[self.current_piece])
+        # Check if the rotated piece would collide with anything
+        rotated_shape = PIECES[self.current_piece][new_rotation]
+        for dy, dx in rotated_shape:
+            new_y = self.piece_y + dy
+            new_x = self.piece_x + dx
+            if new_x < 0 or new_x >= BOARD_WIDTH or new_y >= BOARD_HEIGHT or new_y < 0:
+                return  # Would go out of bounds, so don't rotate
+            if new_y >= 0 and self.board[new_y][new_x] != 0:
+                return  # Would overlap a locked block, so don't rotate
+        # No collision — apply the rotation
+        self.current_rotation = new_rotation
+
     def check_collision(self, user_input_y, user_input_x):
         #Gets the piece that is falling and its rotation
         falling_piece = PIECES[self.current_piece][self.current_rotation]
@@ -219,6 +237,8 @@ def curses_main(stdscr):
                 game.move(0, 1)
             elif key == curses.KEY_DOWN:
                 game.move(1, 0) # Move down faster
+            elif key == curses.KEY_UP:
+                game.rotate()
             elif key == ord('q'):
                 break # Press 'q' to quit the loop and exit the game
         #Render the Frame
