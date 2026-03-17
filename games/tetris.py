@@ -5,6 +5,18 @@ import time
 #Constants
 BOARD_WIDTH = 10
 BOARD_HEIGHT = 20
+CELL_WIDTH = 2  
+
+# Map each piece type to a curses color pair index (used for colored blocks)
+PIECE_COLORS = {
+    "I": 1,
+    "O": 2,
+    "T": 3,
+    "S": 4,
+    "Z": 5,
+    "L": 6,
+    "J": 7,
+}
 
 PIECES = {
     "I": [
@@ -64,27 +76,57 @@ class Tetris():
         self.piece_y = 0
     
     def draw(self):
-            self.stdscr.clear()
-            dirty_rectangles = []
-            for row, col in enumerate(self.board):
-                for col_array, col_item in enumerate(col):
-                    if col_item != 0:
-                        self.stdscr.addstr(row, col_array, "█")
-            #Checks if we have a piece the game is dropping
+            self.stdscr.erase()
+            # Offsets so the board isn't jammed into the corner
+            offset_x = 2
+            offset_y = 2
+            board_width_chars = BOARD_WIDTH * CELL_WIDTH
+            # Top border
+            self.stdscr.addstr(offset_y, offset_x, "+" + "-" * board_width_chars + "+")
+
+            # Draw each row of the board
+            for row in range(BOARD_HEIGHT):
+                self.stdscr.addstr(offset_y + 1 + row, offset_x, "|")  # left wall
+                self.stdscr.addstr(offset_y + 1 + row, offset_x + 1 + board_width_chars, "|")  # right wall
+                for col in range(BOARD_WIDTH):
+                    cell = self.board[row][col]
+                    x_pos = offset_x + 1 + col * CELL_WIDTH
+                    y_pos = offset_y + 1 + row
+                    if cell > 0:
+                        # Locked block: draw 2 colored spaces
+                        self.stdscr.addstr(y_pos, x_pos, "  ", curses.color_pair(cell))
+                    else:
+                        # Empty cell: draw a dot grid so you can see the board
+                        self.stdscr.addstr(y_pos, x_pos, " .")
+
+            # Bottom border
+            self.stdscr.addstr(offset_y + 1 + BOARD_HEIGHT, offset_x, "+" + "-" * board_width_chars + "+")
+
+            # Draw the current falling piece
             if self.current_piece:
-                #get the coords for where the pixels should be for the piece
                 falling_piece = PIECES[self.current_piece][self.current_rotation]
+                color = PIECE_COLORS[self.current_piece]
                 for y, x in falling_piece:
-                    new_x_position = x + self.piece_x
-                    new_y_position = y + self.piece_y
-                    #checks if it's within the boards
-                    if 0 <= new_y_position < BOARD_HEIGHT and 0 <= new_x_position < BOARD_WIDTH:
-                        #This draws the shape
-                       self.stdscr.addstr(new_y_position, new_x_position, "█")
-            for y in range(BOARD_HEIGHT):
-                self.stdscr.addstr(y, BOARD_WIDTH, "|")
-            self.stdscr.addstr(BOARD_HEIGHT, 0, "-" * BOARD_WIDTH)
-            self.stdscr.refresh() # Push the drawing to the screen
+                    new_y = y + self.piece_y
+                    new_x = x + self.piece_x
+                    if 0 <= new_y < BOARD_HEIGHT and 0 <= new_x < BOARD_WIDTH:
+                        self.stdscr.addstr(
+                            offset_y + 1 + new_y,
+                            offset_x + 1 + new_x * CELL_WIDTH,
+                            "  ",
+                            curses.color_pair(color),
+                        )
+
+            # Info panel to the right of the board
+            info_x = offset_x + board_width_chars + 4
+            self.stdscr.addstr(offset_y + 1, info_x, f"Score: {self.score}")
+            # Controls
+            self.stdscr.addstr(offset_y + 4, info_x, "Controls:")
+            self.stdscr.addstr(offset_y + 5, info_x, "  Left/Right  Move")
+            self.stdscr.addstr(offset_y + 6, info_x, "  Down        Soft drop")
+            self.stdscr.addstr(offset_y + 7, info_x, "  q           Quit")
+
+            self.stdscr.refresh()
     def check_collision(self, user_input_y, user_input_x):
         #Gets the piece that is falling and its rotation
         falling_piece = PIECES[self.current_piece][self.current_rotation]
@@ -120,8 +162,8 @@ class Tetris():
             
             # Make sure we don't try to lock a piece above the ceiling (y < 0)
             if 0 <= lock_y < BOARD_HEIGHT and 0 <= lock_x < BOARD_WIDTH:
-                # Change the empty 0 to a solid 1
-                self.board[lock_y][lock_x] = 1
+                # Store the color index so locked blocks keep their color
+                self.board[lock_y][lock_x] = PIECE_COLORS[self.current_piece]
                 
         # Once cemented, check if we filled any rows, then spawn the next piece!
         self.clear_lines()
@@ -137,11 +179,24 @@ class Tetris():
             self.board = new_board
             self.score += (lines_cleared * 100)
 
+def init_colors():
+    """Set up curses color pairs so each piece type has its own color."""
+    curses.start_color()
+    curses.use_default_colors()
+    curses.init_pair(1, curses.COLOR_CYAN, curses.COLOR_CYAN)       # I
+    curses.init_pair(2, curses.COLOR_YELLOW, curses.COLOR_YELLOW)   # O
+    curses.init_pair(3, curses.COLOR_MAGENTA, curses.COLOR_MAGENTA) # T
+    curses.init_pair(4, curses.COLOR_GREEN, curses.COLOR_GREEN)     # S
+    curses.init_pair(5, curses.COLOR_RED, curses.COLOR_RED)         # Z
+    curses.init_pair(6, curses.COLOR_WHITE, curses.COLOR_WHITE)     # L
+    curses.init_pair(7, curses.COLOR_BLUE, curses.COLOR_BLUE)       # J
+
 def curses_main(stdscr):
-    curses.curs_set(0)    
+    curses.curs_set(0)
     stdscr.nodelay(True)
-    stdscr.keypad(True)     
-    
+    stdscr.keypad(True)
+    init_colors()
+
     game = Tetris(stdscr)
     game.spawn_piece()
     last_fall_time = time.time()
