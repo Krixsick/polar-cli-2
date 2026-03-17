@@ -152,7 +152,7 @@ def curses_main(stdscr):
         if current_time - last_fall_time > fall_speed:
             success = game.move(1, 0)
             if not success:
-                game.spawn_piece()
+                game.lock_piece()
             last_fall_time = current_time
             
         #Handle User Input
