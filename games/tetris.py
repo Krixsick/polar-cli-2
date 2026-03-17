@@ -82,7 +82,7 @@ class Tetris():
                         #This draws the shape
                        self.stdscr.addstr(new_y_position, new_x_position, "█")
             for y in range(BOARD_HEIGHT):
-                self.stdscr.addstcr(y, BOARD_WIDTH, "|")
+                self.stdscr.addstr(y, BOARD_WIDTH, "|")
             self.stdscr.addstr(BOARD_HEIGHT, 0, "-" * BOARD_WIDTH)
             self.stdscr.refresh() # Push the drawing to the screen
     def check_collision(self, user_input_y, user_input_x):
@@ -96,6 +96,9 @@ class Tetris():
             #checks if it's greater than width and height of board
             if new_x < 0 or new_x >= BOARD_WIDTH or new_y >= BOARD_HEIGHT or new_y < 0:
                 return True
+            # 2. Add this to check for locked blocks!
+            if new_y >= 0 and self.board[new_y][new_x] != 0:
+                return True
         return False
     
     def move(self, user_input_y, user_input_x):
@@ -106,6 +109,33 @@ class Tetris():
             return True
         # The path was blocked. Do not change the coordinates.
         return False
+    
+    def lock_piece(self):
+        """Permanently cements the active piece into the board array."""
+        falling_piece = PIECES[self.current_piece][self.current_rotation]
+        
+        for dy, dx in falling_piece:
+            lock_y = self.piece_y + dy
+            lock_x = self.piece_x + dx
+            
+            # Make sure we don't try to lock a piece above the ceiling (y < 0)
+            if 0 <= lock_y < BOARD_HEIGHT and 0 <= lock_x < BOARD_WIDTH:
+                # Change the empty 0 to a solid 1
+                self.board[lock_y][lock_x] = 1
+                
+        # Once cemented, check if we filled any rows, then spawn the next piece!
+        self.clear_lines()
+        self.spawn_piece()
+    def clear_lines(self):
+        """Removes full rows and drops new empty rows at the top."""
+        new_board = [row for row in self.board if 0 in row]
+        lines_cleared = BOARD_HEIGHT - len(new_board)
+        
+        if lines_cleared > 0:
+            for _ in range(lines_cleared):
+                new_board.insert(0, [0] * BOARD_WIDTH)
+            self.board = new_board
+            self.score += (lines_cleared * 100)
 
 def curses_main(stdscr):
     curses.curs_set(0)    
