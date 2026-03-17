@@ -1,4 +1,4 @@
-import typer
+
 import curses
 import random
 import time
@@ -263,6 +263,6 @@ def curses_main(stdscr):
 
 def run_game():
     """The public function that starts the game."""
-    # Notice how we just pass the name of the function, no parentheses!
+    
     curses.wrapper(curses_main)
         
