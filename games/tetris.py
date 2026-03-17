@@ -74,6 +74,9 @@ class Tetris():
         #spawns them top of the board and in the middle
         self.piece_x = BOARD_WIDTH // 2 - 1
         self.piece_y = 0
+        # If the new piece immediately overlaps locked blocks, the game is over
+        if self.check_collision(0, 0):
+            self.game_over = True
     
     def draw(self):
             self.stdscr.erase()
@@ -195,19 +198,21 @@ class Tetris():
             for _ in range(lines_cleared):
                 new_board.insert(0, [0] * BOARD_WIDTH)
             self.board = new_board
-            self.score += (lines_cleared * 100)
+            # Bonus points for clearing more lines at once (like real Tetris)
+            points = {1: 100, 2: 300, 3: 500, 4: 800}
+            self.score += points.get(lines_cleared, 800)
 
 def init_colors():
     """Set up curses color pairs so each piece type has its own color."""
     curses.start_color()
     curses.use_default_colors()
-    curses.init_pair(1, curses.COLOR_CYAN, curses.COLOR_CYAN)       # I
+    curses.init_pair(1, curses.COLOR_BLUE, curses.COLOR_BLUE)       # I
     curses.init_pair(2, curses.COLOR_YELLOW, curses.COLOR_YELLOW)   # O
     curses.init_pair(3, curses.COLOR_MAGENTA, curses.COLOR_MAGENTA) # T
     curses.init_pair(4, curses.COLOR_GREEN, curses.COLOR_GREEN)     # S
     curses.init_pair(5, curses.COLOR_RED, curses.COLOR_RED)         # Z
     curses.init_pair(6, curses.COLOR_WHITE, curses.COLOR_WHITE)     # L
-    curses.init_pair(7, curses.COLOR_BLUE, curses.COLOR_BLUE)       # J
+    curses.init_pair(7, curses.COLOR_CYAN, curses.COLOR_CYAN)       # J
 
 def curses_main(stdscr):
     curses.curs_set(0)
@@ -245,6 +250,16 @@ def curses_main(stdscr):
         game.draw()
         # Prevent the while loop from running millions of times a second and maxing out your CPU
         time.sleep(0.01)
+
+    # Game Over Screen
+    if game.game_over:
+        stdscr.nodelay(False)  # Make getch() wait for a keypress again
+        stdscr.clear()
+        stdscr.addstr(10, 5, "GAME OVER!", curses.A_BOLD)
+        stdscr.addstr(12, 5, f"Final Score: {game.score}")
+        stdscr.addstr(14, 5, "Press any key to exit.")
+        stdscr.refresh()
+        stdscr.getch()
 
 def run_game():
     """The public function that starts the game."""
