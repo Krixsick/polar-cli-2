@@ -1,4 +1,5 @@
 import hashlib
+from pathlib import Path
 import platform
 from typing import Annotated
 import typer
@@ -7,6 +8,7 @@ import sys
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
+from rich import box
 from rich.text import Text
 from collections import defaultdict
 
@@ -25,8 +27,9 @@ def get_file_hash(file_path, chunk_size=1024*1024):
 @app.command()
 def files_help():
     help_commands = {
-        "files system-info": "Displays the specs of your computer/laptop"
-        "files files-search <int> <size (mb/kb/gb)>"
+        "system-info": "Displays the specs of your computer/laptop.",
+        "files-search [yellow]<int> <size>[/]": "Searches for files above the inputted size (e.g., mb/kb/gb).",
+        "files-dupe": "Looks for any duplicate files inside your folders."
     }
     
     table = Table(show_header=False, padding=(0, 2))
@@ -40,7 +43,8 @@ def files_help():
         table,
         title="[bold]Files Help Commands[/]",
         border_style="cyan",
-        padding=(1, 1),
+        padding=(1, 2),
+        expand=False
     ))
     
 @app.command()
@@ -52,7 +56,7 @@ def system_info():
         "Machine": platform.machine(),
         "Python": platform.python_version(),
     }
-    table = Table(show_header=False, padding=(0, 2))
+    table = Table(show_header=False, box=box.SIMPLE, padding=(0, 3))
     table.add_column("Key", style="bold cyan", justify="right")
     table.add_column("Value", style="white")
 
@@ -136,8 +140,18 @@ def files_dupe(chunk_size: Annotated[float, typer.Option(help="Size of file you 
 
     if not found_any:
         console.print("[green]No duplicate files found! Your directory is clean.[/green]")
-    
-                
+
+def generate_tree(directory_path: Path, prefix: str =""):
+    paths = sorted(directory_path.iterdir(), key=lambda p: p.name.lower())
+    total_items = len(paths)
+    print(paths)
+
+
+@app.command()
+def files_tree():
+    path = Path.cwd()
+    generate_tree(path)
+        
                 
                 
                 

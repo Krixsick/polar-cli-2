@@ -1,0 +1,44 @@
+name: Build Standalone Executables
+
+# This tells GitHub to run this script every time you push to the main branch
+on:
+  push:
+    branches: [main, master]
+
+jobs:
+  build:
+    # The Matrix is the magic part: it runs this job 3 times simultaneously on 3 different OS's
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      # 1. Grab your code from the repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Install the 'uv' package manager
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      # 3. Install Python
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # 4. Install your project's dependencies using uv
+      - name: Install dependencies
+        run: uv sync
+
+      # 5. Build the executable using PyInstaller
+      - name: Build with PyInstaller
+        run: uv run pyinstaller --onefile --name tetris-cli main.py
+
+      # 6. Upload the finished executable so you can download it
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: executable-${{ matrix.os }}
+          path: dist/*
